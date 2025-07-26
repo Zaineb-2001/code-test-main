@@ -380,6 +380,33 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   useEffect(() => {
     const handleSelection = () => {
       const selection = window.getSelection();
+
+      if (
+        !selection ||
+        selection.rangeCount === 0 ||
+        !selection.toString().trim()
+      ) {
+        setSelectedText("");
+        setShowContextualMenu(false);
+        return;
+      }
+
+      // Check if the selection is within the editor
+      const range = selection.getRangeAt(0);
+      const containerElement =
+        range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+          ? range.commonAncestorContainer.parentElement
+          : (range.commonAncestorContainer as Element);
+
+      if (!editorRef.current?.contains(containerElement)) {
+        setSelectedText("");
+        setShowContextualMenu(false);
+        return;
+      }
+
+      const selectedText = selection.toString();
+      setSelectedText(selectedText);
+
       if (
         selection &&
         selection.rangeCount > 0 &&
@@ -387,15 +414,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       ) {
         const selectedText = selection.toString();
         setSelectedText(selectedText);
-
         // Get position for contextual menu
         const rect = selection.getRangeAt(0).getBoundingClientRect();
         const editorRect = editorRef.current?.getBoundingClientRect();
-
         if (editorRect) {
           const relativeX = rect.left - editorRect.left + rect.width / 2;
           const relativeY = rect.top - editorRect.top;
-
           setContextualMenuPosition({
             x: relativeX,
             y: relativeY - 10,
@@ -414,23 +438,70 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, []);
 
   // Enhanced contextual formatting for selected text
-  const formatSelectedText = (command: string, value?: string) => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
+  const formatSelectedText = (command: string) => {
+    console.log("Formatting selected text:", command);
 
-    // Apply formatting to selection
-    document.execCommand(command, false, value);
+    // Use the selectedText state instead of getting it from selection
+    if (!selectedText || !selectedText.trim()) {
+      console.log("No selected text found");
+      return;
+    }
 
-    // Update content
-    if (editorRef.current) {
-      const newContent = editorRef.current.innerHTML;
-      isUpdatingRef.current = true;
-      onChange(newContent);
+    let tagName = "";
+    switch (command) {
+      case "bold":
+        tagName = "strong";
+        break;
+      case "italic":
+        tagName = "em";
+        break;
+      case "underline":
+        tagName = "u";
+        break;
+      default:
+        return;
+    }
 
-      setTimeout(() => {
-        editorRef.current?.focus();
-        isUpdatingRef.current = false;
-      }, 0);
+    if (!editorRef.current) return;
+
+    try {
+      // Get current content
+      const currentContent = editorRef.current.innerHTML;
+      console.log("Current content:", currentContent);
+      console.log("Selected text:", selectedText);
+
+      // Create formatted version
+      const formattedText = `<${tagName}>${selectedText}</${tagName}>`;
+
+      // Find and replace the FIRST occurrence only
+      const index = currentContent.indexOf(selectedText);
+      if (index !== -1) {
+        const newContent =
+          currentContent.substring(0, index) +
+          formattedText +
+          currentContent.substring(index + selectedText.length);
+
+        console.log("New content:", newContent);
+
+        // Update the editor
+        isUpdatingRef.current = true;
+        editorRef.current.innerHTML = newContent;
+
+        onChange(newContent);
+
+        // Clear selection
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+
+        setTimeout(() => {
+          editorRef.current?.focus();
+          isUpdatingRef.current = false;
+        }, 0);
+      } else {
+        console.log("Text not found for replacement");
+      }
+    } catch (error) {
+      console.error("Formatting error:", error);
     }
 
     setShowContextualMenu(false);
@@ -575,6 +646,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Formatting functions
   const formatText = (command: string, value?: string) => {
+    console.log("Formatting text:", command, value);
     document.execCommand(command, false, value);
     editorRef.current?.focus();
 

@@ -1067,7 +1067,7 @@ const AIWritingDashboard = () => {
       </div>
 
       {/* Floating Action Button for Quick Actions */}
-      <div className="fixed bottom-6 right-6 z-40">
+      {/* <div className="fixed bottom-6 right-6 z-40">
         <div className="relative group">
           <button className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
             <Wand2 className="w-6 h-6" />
@@ -1097,7 +1097,7 @@ const AIWritingDashboard = () => {
             </button>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* OpenAI Configuration */}
       <OpenAIConfig onApiKeySet={setIsOpenAIEnabled} />
