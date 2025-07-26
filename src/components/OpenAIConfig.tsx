@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Key, Eye, EyeOff, CheckCircle, AlertCircle, Settings, Zap } from "lucide-react";
+import {
+  Key,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  AlertCircle,
+  Settings,
+  Zap,
+} from "lucide-react";
 import { initializeOpenAI, getOpenAIService } from "../lib/openai-service";
 
 interface OpenAIConfigProps {
@@ -40,17 +48,23 @@ const OpenAIConfig: React.FC<OpenAIConfigProps> = ({ onApiKeySet }) => {
       // Initialize the service
       initializeOpenAI(key);
       const service = getOpenAIService();
-      
+
+      if (localStorage.getItem("openai_api_valid") === "true") {
+        setIsValid(true);
+        onApiKeySet(true);
+        return;
+      }
+
       // Test the API with a simple request
       const testResult = await service.checkSpellingAndGrammar("Hello world");
-      
+
       setIsValid(true);
       setError("");
       onApiKeySet(true);
-      
+
       // Save to localStorage
       localStorage.setItem("openai_api_key", key);
-      
+      localStorage.setItem("openai_api_valid", "true");
     } catch (err) {
       setIsValid(false);
       setError(err instanceof Error ? err.message : "Invalid API key");
@@ -63,13 +77,13 @@ const OpenAIConfig: React.FC<OpenAIConfigProps> = ({ onApiKeySet }) => {
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newKey = e.target.value;
     setApiKey(newKey);
-    
+
     // Clear validation state when user starts typing
     if (isValid) {
       setIsValid(false);
       onApiKeySet(false);
     }
-    
+
     // Validate after user stops typing
     const timeoutId = setTimeout(() => {
       validateApiKey(newKey);
@@ -88,6 +102,7 @@ const OpenAIConfig: React.FC<OpenAIConfigProps> = ({ onApiKeySet }) => {
     setError("");
     onApiKeySet(false);
     localStorage.removeItem("openai_api_key");
+    localStorage.removeItem("openai_api_valid");
   };
 
   return (
@@ -135,7 +150,11 @@ const OpenAIConfig: React.FC<OpenAIConfigProps> = ({ onApiKeySet }) => {
                   onClick={() => setShowApiKey(!showApiKey)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
                 >
-                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showApiKey ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -148,14 +167,14 @@ const OpenAIConfig: React.FC<OpenAIConfigProps> = ({ onApiKeySet }) => {
                   <span className="text-sm">Validating...</span>
                 </div>
               )}
-              
+
               {isValid && !isValidating && (
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle className="w-4 h-4" />
                   <span className="text-sm font-medium">API Key Valid</span>
                 </div>
               )}
-              
+
               {error && !isValidating && (
                 <div className="flex items-center gap-2 text-red-600">
                   <AlertCircle className="w-4 h-4" />
@@ -173,7 +192,7 @@ const OpenAIConfig: React.FC<OpenAIConfigProps> = ({ onApiKeySet }) => {
               >
                 {isValidating ? "Validating..." : "Save & Test"}
               </button>
-              
+
               {isValid && (
                 <button
                   onClick={clearApiKey}
@@ -187,7 +206,9 @@ const OpenAIConfig: React.FC<OpenAIConfigProps> = ({ onApiKeySet }) => {
             {/* Batch Stats */}
             {isValid && (
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Batch Processing Status</h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Batch Processing Status
+                </h4>
                 <div className="text-xs text-gray-600">
                   <p>• Requests are batched to optimize token usage</p>
                   <p>• Maximum 10 requests per batch</p>
@@ -200,7 +221,17 @@ const OpenAIConfig: React.FC<OpenAIConfigProps> = ({ onApiKeySet }) => {
             <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
               <p className="font-medium mb-1">How to get your API key:</p>
               <ol className="list-decimal list-inside space-y-1">
-                <li>Visit <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OpenAI Platform</a></li>
+                <li>
+                  Visit{" "}
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    OpenAI Platform
+                  </a>
+                </li>
                 <li>Sign in or create an account</li>
                 <li>Click "Create new secret key"</li>
                 <li>Copy the key (starts with "sk-")</li>
@@ -213,4 +244,4 @@ const OpenAIConfig: React.FC<OpenAIConfigProps> = ({ onApiKeySet }) => {
   );
 };
 
-export default OpenAIConfig; 
+export default OpenAIConfig;

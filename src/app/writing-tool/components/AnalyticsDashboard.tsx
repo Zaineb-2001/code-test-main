@@ -749,14 +749,15 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                       <div>
                         <p className="font-medium">{doc.name}</p>
                         <p className="text-xs text-gray-600">
-                          Last edited: {doc.updatedAt.toLocaleDateString()} at{" "}
-                          {doc.updatedAt.toLocaleTimeString()}
+                          Last edited:{" "}
+                          {new Date(doc.updated_at).toLocaleDateString()} at{" "}
+                          {new Date(doc.updated_at).toLocaleTimeString()}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-600">
-                        {doc.wordCount} words
+                        {doc.word_count} words
                       </span>
                       <button
                         onClick={() => onExport?.("txt")}

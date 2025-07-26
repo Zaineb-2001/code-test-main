@@ -381,28 +381,28 @@ const AIWritingDashboard = () => {
   };
 
   // Auto-save functionality
-  useEffect(() => {
-    if (!activeDocId || !content.trim()) return;
+  // useEffect(() => {
+  //   if (!activeDocId || !content.trim()) return;
 
-    if (autosaveRef.current) clearTimeout(autosaveRef.current);
+  //   if (autosaveRef.current) clearTimeout(autosaveRef.current);
 
-    autosaveRef.current = setTimeout(async () => {
-      setIsSaving(true);
-      try {
-        await documentService.autoSaveDocument(activeDocId, content, content);
-        // Refresh the document list to show updated timestamp
-        await loadDocuments();
-      } catch (error) {
-        console.error("Auto-save failed:", error);
-      } finally {
-        setIsSaving(false);
-      }
-    }, 30000); // 30 second delay
+  //   autosaveRef.current = setTimeout(async () => {
+  //     setIsSaving(true);
+  //     try {
+  //       await documentService.autoSaveDocument(activeDocId, content, content);
+  //       // Refresh the document list to show updated timestamp
+  //       await loadDocuments();
+  //     } catch (error) {
+  //       console.error("Auto-save failed:", error);
+  //     } finally {
+  //       setIsSaving(false);
+  //     }
+  //   }, 30000); // 30 second delay
 
-    return () => {
-      if (autosaveRef.current) clearTimeout(autosaveRef.current);
-    };
-  }, [content, activeDocId]);
+  //   return () => {
+  //     if (autosaveRef.current) clearTimeout(autosaveRef.current);
+  //   };
+  // }, [content, activeDocId]);
 
   useEffect(() => {
     const doc = documents.find((doc) => doc.id === activeDocId);

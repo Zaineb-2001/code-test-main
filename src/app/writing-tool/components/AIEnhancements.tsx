@@ -19,8 +19,9 @@ import {
   BookOpen,
   PenTool,
   Hash,
-  Quote
+  Quote,
 } from "lucide-react";
+import { getOpenAIService } from "@/lib/openai-service";
 
 interface Suggestion {
   original: string;
@@ -46,7 +47,6 @@ interface ContentEnhancement {
 interface CreativeSuggestion {
   type: "title" | "hook" | "conclusion" | "keyword";
   suggestions: string[];
-  confidence: number;
 }
 
 interface AIEnhancementsProps {
@@ -60,145 +60,218 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
   content,
   onApplySuggestion,
   onApplyEnhancement,
-  onApplyCreative
+  onApplyCreative,
 }) => {
   const [activeTab, setActiveTab] = useState("grammar");
   const [isProcessing, setIsProcessing] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [toneAnalysis, setToneAnalysis] = useState<ToneAnalysis | null>(null);
   const [enhancements, setEnhancements] = useState<ContentEnhancement[]>([]);
-  const [creativeSuggestions, setCreativeSuggestions] = useState<CreativeSuggestion[]>([]);
+  const [creativeSuggestions, setCreativeSuggestions] = useState<
+    CreativeSuggestion[]
+  >([]);
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState("");
+
+  const service = getOpenAIService();
 
   // Mock AI processing functions
   const processGrammarCheck = async () => {
     setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockSuggestions: Suggestion[] = [
-      {
-        original: "There is many issues",
-        suggestion: "There are many issues",
-        type: "grammar",
-        explanation: "Subject-verb agreement error. Use 'are' for plural subjects.",
-        confidence: 0.95
-      },
-      {
-        original: "its very important",
-        suggestion: "it's very important",
-        type: "spelling",
-        explanation: "Missing apostrophe in contraction.",
-        confidence: 0.98
-      },
-      {
-        original: "The data shows that...",
-        suggestion: "The data show that...",
-        type: "grammar",
-        explanation: "'Data' is plural, so use 'show' instead of 'shows'.",
-        confidence: 0.87
-      }
-    ];
-    
-    setSuggestions(mockSuggestions);
+    // await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const response = await service.checkSpellingAndGrammar(content);
+
+    console.log("Grammar Check Response:", response);
+
+    // const mockSuggestions: Suggestion[] = [
+    //   {
+    //     original: "There is many issues",
+    //     suggestion: "There are many issues",
+    //     type: "grammar",
+    //     explanation:
+    //       "Subject-verb agreement error. Use 'are' for plural subjects.",
+    //     confidence: 0.95,
+    //   },
+    //   {
+    //     original: "its very important",
+    //     suggestion: "it's very important",
+    //     type: "spelling",
+    //     explanation: "Missing apostrophe in contraction.",
+    //     confidence: 0.98,
+    //   },
+    //   {
+    //     original: "The data shows that...",
+    //     suggestion: "The data show that...",
+    //     type: "grammar",
+    //     explanation: "'Data' is plural, so use 'show' instead of 'shows'.",
+    //     confidence: 0.87,
+    //   },
+    // ];
+
+    // setSuggestions(mockSuggestions);
+
+    setSuggestions(response);
     setIsProcessing(false);
   };
 
   const analyzeTone = async () => {
     setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
+    // await new Promise((resolve) => setTimeout(resolve, 1500));
+
     const tones = ["professional", "casual", "formal", "friendly", "academic"];
-    const currentTone = tones[Math.floor(Math.random() * tones.length)];
-    
+    // const currentTone = tones[Math.floor(Math.random() * tones.length)];
+
+    const response = await service.analyzeTone(content);
+
+    console.log("analyzeTone", response);
+
+    // setToneAnalysis({
+    //   current: currentTone,
+    //   confidence: 0.85,
+    //   suggestions: tones.filter((t) => t !== currentTone),
+    // });
     setToneAnalysis({
-      current: currentTone,
-      confidence: 0.85,
-      suggestions: tones.filter(t => t !== currentTone)
+      current: response.tone,
+      confidence: response.confidence,
+      suggestions: tones.filter((t) => t !== response.tone),
     });
     setIsProcessing(false);
   };
 
   const enhanceContent = async (type: string) => {
     setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    const mockEnhancements: ContentEnhancement[] = [
+
+    const response = await service.enhanceContent(content, type as any);
+
+    console.log("Enhance Content Response:", response);
+
+    const enhanced: ContentEnhancement[] = [
       {
-        type: "expand",
+        type: type as "expand" | "condense" | "rephrase" | "improve",
         original: content.substring(0, 100) + "...",
-        enhanced: content + "\n\nThis concept can be further explored by considering the underlying principles and practical applications. The implications extend beyond the immediate scope, affecting various stakeholders and creating opportunities for innovation and improvement.",
-        explanation: "Expanded the content with additional context and examples."
+        enhanced: response,
+        explanation:
+          "Expanded the content with additional context and examples.",
       },
-      {
-        type: "condense",
-        original: content,
-        enhanced: content.length > 200 ? content.substring(0, 200) + "..." : content,
-        explanation: "Condensed the content while maintaining key points."
-      },
-      {
-        type: "rephrase",
-        original: content.substring(0, 100) + "...",
-        enhanced: content.split(".").map(sentence => 
-          sentence.trim() ? 
-            `${sentence.trim().charAt(0).toUpperCase()}${sentence.trim().slice(1).toLowerCase()}.` : ""
-        ).join(" "),
-        explanation: "Rephrased sentences for better clarity and flow."
-      }
     ];
-    
-    setEnhancements(mockEnhancements);
+
+    // await new Promise((resolve) => setTimeout(resolve, 2500));
+
+    // const mockEnhancements: ContentEnhancement[] = [
+    //   {
+    //     type: "expand",
+    //     original: content.substring(0, 100) + "...",
+    //     enhanced:
+    //       content +
+    //       "\n\nThis concept can be further explored by considering the underlying principles and practical applications. The implications extend beyond the immediate scope, affecting various stakeholders and creating opportunities for innovation and improvement.",
+    //     explanation:
+    //       "Expanded the content with additional context and examples.",
+    //   },
+    //   {
+    //     type: "condense",
+    //     original: content,
+    //     enhanced:
+    //       content.length > 200 ? content.substring(0, 200) + "..." : content,
+    //     explanation: "Condensed the content while maintaining key points.",
+    //   },
+    //   {
+    //     type: "rephrase",
+    //     original: content.substring(0, 100) + "...",
+    //     enhanced: content
+    //       .split(".")
+    //       .map((sentence) =>
+    //         sentence.trim()
+    //           ? `${sentence.trim().charAt(0).toUpperCase()}${sentence
+    //               .trim()
+    //               .slice(1)
+    //               .toLowerCase()}.`
+    //           : ""
+    //       )
+    //       .join(" "),
+    //     explanation: "Rephrased sentences for better clarity and flow.",
+    //   },
+    // ];
+
+    // setEnhancements(mockEnhancements);
+    setEnhancements(enhanced);
     setIsProcessing(false);
   };
 
   const generateCreativeSuggestions = async (type: string) => {
     setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 1800));
-    
-    const mockCreative: CreativeSuggestion[] = [
+
+    const response = await service.generateCreative(content, type as any);
+
+    console.log("generateCreative Response:", response);
+
+    const creative: CreativeSuggestion[] = [
       {
-        type: "title",
-        suggestions: [
-          "The Ultimate Guide to " + (content.split(" ")[0] || "Success"),
-          "Mastering " + (content.split(" ")[1] || "Innovation"),
-          "5 Key Insights About " + (content.split(" ")[0] || "Growth"),
-          "Transform Your " + (content.split(" ")[0] || "Strategy")
-        ],
-        confidence: 0.82
+        type: type as "title" | "hook" | "conclusion" | "keyword",
+        suggestions: response,
       },
-      {
-        type: "hook",
-        suggestions: [
-          "Imagine a world where " + (content.split(" ").slice(0, 3).join(" ") || "possibilities are endless"),
-          "What if I told you " + (content.split(" ").slice(0, 4).join(" ") || "everything you know is about to change"),
-          "In today's rapidly evolving landscape, " + (content.split(" ").slice(0, 5).join(" ") || "success requires adaptation")
-        ],
-        confidence: 0.78
-      },
-      {
-        type: "conclusion",
-        suggestions: [
-          "As we've explored, " + (content.split(" ").slice(0, 4).join(" ") || "the journey continues"),
-          "The future holds " + (content.split(" ").slice(0, 3).join(" ") || "infinite possibilities"),
-          "Remember, " + (content.split(" ").slice(0, 3).join(" ") || "every step forward counts")
-        ],
-        confidence: 0.75
-      }
     ];
-    
-    setCreativeSuggestions(mockCreative);
+
+    setCreativeSuggestions(creative);
+
+    // await new Promise((resolve) => setTimeout(resolve, 1800));
+
+    // const mockCreative: CreativeSuggestion[] = [
+    //   {
+    //     type: "title",
+    //     suggestions: [
+    //       "The Ultimate Guide to " + (content.split(" ")[0] || "Success"),
+    //       "Mastering " + (content.split(" ")[1] || "Innovation"),
+    //       "5 Key Insights About " + (content.split(" ")[0] || "Growth"),
+    //       "Transform Your " + (content.split(" ")[0] || "Strategy"),
+    //     ],
+    //   },
+    //   {
+    //     type: "hook",
+    //     suggestions: [
+    //       "Imagine a world where " +
+    //         (content.split(" ").slice(0, 3).join(" ") ||
+    //           "possibilities are endless"),
+    //       "What if I told you " +
+    //         (content.split(" ").slice(0, 4).join(" ") ||
+    //           "everything you know is about to change"),
+    //       "In today's rapidly evolving landscape, " +
+    //         (content.split(" ").slice(0, 5).join(" ") ||
+    //           "success requires adaptation"),
+    //     ],
+    //   },
+    //   {
+    //     type: "conclusion",
+    //     suggestions: [
+    //       "As we've explored, " +
+    //         (content.split(" ").slice(0, 4).join(" ") ||
+    //           "the journey continues"),
+    //       "The future holds " +
+    //         (content.split(" ").slice(0, 3).join(" ") ||
+    //           "infinite possibilities"),
+    //       "Remember, " +
+    //         (content.split(" ").slice(0, 3).join(" ") ||
+    //           "every step forward counts"),
+    //     ],
+    //   },
+    // ];
+
+    // setCreativeSuggestions(mockCreative);
     setIsProcessing(false);
   };
 
   const addKeyword = () => {
-    if (keywordInput.trim() && !selectedKeywords.includes(keywordInput.trim())) {
+    if (
+      keywordInput.trim() &&
+      !selectedKeywords.includes(keywordInput.trim())
+    ) {
       setSelectedKeywords([...selectedKeywords, keywordInput.trim()]);
       setKeywordInput("");
     }
   };
 
   const removeKeyword = (keyword: string) => {
-    setSelectedKeywords(selectedKeywords.filter(k => k !== keyword));
+    setSelectedKeywords(selectedKeywords.filter((k) => k !== keyword));
   };
 
   const applySuggestion = (suggestion: Suggestion) => {
@@ -222,7 +295,7 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
             { id: "grammar", label: "Grammar & Spelling", icon: CheckCircle },
             { id: "tone", label: "Tone Analysis", icon: MessageSquare },
             { id: "enhance", label: "Content Enhancement", icon: Wand2 },
-            { id: "creative", label: "Creative Writing", icon: Sparkles }
+            { id: "creative", label: "Creative Writing", icon: Sparkles },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -277,7 +350,8 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
                               {suggestion.type} Error
                             </span>
                             <span className="text-xs text-gray-500">
-                              {Math.round(suggestion.confidence * 100)}% confidence
+                              {Math.round(suggestion.confidence * 100)}%
+                              confidence
                             </span>
                           </div>
                           <p className="text-sm mb-2">
@@ -293,12 +367,12 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
                             {suggestion.explanation}
                           </p>
                         </div>
-                        <button
+                        {/* <button
                           onClick={() => applySuggestion(suggestion)}
                           className="ml-4 px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                         >
                           Apply
-                        </button>
+                        </button> */}
                       </div>
                     </div>
                   ))}
@@ -372,13 +446,33 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
                 <Wand2 className="w-5 h-5 text-purple-600" />
                 Content Enhancement
               </h3>
-              
+
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {[
-                  { key: "expand", label: "Expand", desc: "Add more detail", icon: TrendingUp },
-                  { key: "condense", label: "Condense", desc: "Make it shorter", icon: Zap },
-                  { key: "rephrase", label: "Rephrase", desc: "Say it differently", icon: PenTool },
-                  { key: "improve", label: "Improve Clarity", desc: "Simplify complex sentences", icon: Lightbulb }
+                  {
+                    key: "expand",
+                    label: "Expand",
+                    desc: "Add more detail",
+                    icon: TrendingUp,
+                  },
+                  {
+                    key: "condense",
+                    label: "Condense",
+                    desc: "Make it shorter",
+                    icon: Zap,
+                  },
+                  {
+                    key: "rephrase",
+                    label: "Rephrase",
+                    desc: "Say it differently",
+                    icon: PenTool,
+                  },
+                  {
+                    key: "improve",
+                    label: "Improve Clarity",
+                    desc: "Simplify complex sentences",
+                    icon: Lightbulb,
+                  },
                 ].map(({ key, label, desc, icon: Icon }) => (
                   <button
                     key={key}
@@ -400,17 +494,26 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
                   {enhancements.map((enhancement, idx) => (
                     <div key={idx} className="p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium capitalize">{enhancement.type} Result</h4>
-                        <button
+                        <h4 className="font-medium capitalize">
+                          {enhancement.type} Result
+                        </h4>
+                        {/* <button
                           onClick={() => applyEnhancement(enhancement)}
                           className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
                         >
                           Apply
-                        </button>
+                        </button> */}
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">{enhancement.explanation}</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {enhancement.explanation}
+                      </p>
                       <div className="bg-white p-3 rounded border">
-                        <p className="text-sm">{enhancement.enhanced}</p>
+                        <div
+                          className="text-sm"
+                          dangerouslySetInnerHTML={{
+                            __html: enhancement.enhanced,
+                          }}
+                        />
                       </div>
                     </div>
                   ))}
@@ -442,7 +545,7 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
                     onChange={(e) => setKeywordInput(e.target.value)}
                     placeholder="Add keywords to integrate..."
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
+                    onKeyPress={(e) => e.key === "Enter" && addKeyword()}
                   />
                   <button
                     onClick={addKeyword}
@@ -472,11 +575,20 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
               </div>
 
               {/* Creative Suggestions */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {[
                   { key: "title", label: "Title Generator", icon: BookOpen },
                   { key: "hook", label: "Hook Generator", icon: Quote },
-                  { key: "conclusion", label: "Conclusion Generator", icon: Star }
+                  {
+                    key: "conclusion",
+                    label: "Conclusion Generator",
+                    icon: Star,
+                  },
+                  {
+                    key: "keywords",
+                    label: "Keywords Generator",
+                    icon: Hash,
+                  },
                 ].map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
@@ -495,29 +607,34 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
                   {creativeSuggestions.map((creative, idx) => (
                     <div key={idx} className="p-4 bg-gray-50 rounded-lg">
                       <h4 className="font-medium capitalize mb-2 flex items-center gap-2">
-                        {creative.type === "title" && <BookOpen className="w-4 h-4" />}
-                        {creative.type === "hook" && <Quote className="w-4 h-4" />}
-                        {creative.type === "conclusion" && <Star className="w-4 h-4" />}
+                        {creative.type === "title" && (
+                          <BookOpen className="w-4 h-4" />
+                        )}
+                        {creative.type === "hook" && (
+                          <Quote className="w-4 h-4" />
+                        )}
+                        {creative.type === "conclusion" && (
+                          <Star className="w-4 h-4" />
+                        )}
                         {creative.type} Suggestions
-                        <span className="text-xs text-gray-500">
-                          {Math.round(creative.confidence * 100)}% confidence
-                        </span>
                       </h4>
                       <div className="space-y-2">
-                        {creative.suggestions.map((suggestion, suggestionIdx) => (
-                          <div
-                            key={suggestionIdx}
-                            className="flex items-center justify-between p-3 bg-white rounded border"
-                          >
-                            <span className="text-sm">{suggestion}</span>
-                            <button
-                              onClick={() => applyCreative(suggestion)}
-                              className="px-3 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700"
+                        {creative.suggestions.map(
+                          (suggestion, suggestionIdx) => (
+                            <div
+                              key={suggestionIdx}
+                              className="flex items-center justify-between p-3 bg-white rounded border"
                             >
-                              Use
-                            </button>
-                          </div>
-                        ))}
+                              <span className="text-sm">{suggestion}</span>
+                              {/* <button
+                                onClick={() => applyCreative(suggestion)}
+                                className="px-3 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700"
+                              >
+                                Use
+                              </button> */}
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   ))}
@@ -531,4 +648,4 @@ const AIEnhancements: React.FC<AIEnhancementsProps> = ({
   );
 };
 
-export default AIEnhancements; 
+export default AIEnhancements;
